@@ -1,0 +1,36 @@
+name: Call Cloud Function and Upload to GCS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  call-and-upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Install dependencies
+        run: npm install @actions/http-request google-github-actions/upload-cloud-storage
+
+      - name: Invoke Cloud Function
+        uses: actions/http-request@v1.x
+        with:
+          url: https://us-central1-leanwf.cloudfunctions.net/fetch_data
+          query:
+            key: ${{ secrets.API_KEY }}
+        id: cloud-function
+
+      - name: Upload to GCS
+        uses: google-github-actions/upload-cloud-storage@main
+        with:
+          args: cp - "${{ steps.cloud-function.outputs.body }}" gs://gcf-sources-630978593836-us-central1/myfile
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
